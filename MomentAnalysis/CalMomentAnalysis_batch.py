@@ -55,6 +55,71 @@ def calcDistToAxis(point,centroid,axis):
   crossProd = np.cross(axis,diffVec)
   return math.sqrt(np.dot(crossProd,crossProd))
 
+def getEntry(initPos,initDir):
+
+  calZTop = -48.12
+  calZBot = -217.47
+  calXLo = -728.22
+  calXHi = 728.22
+  calYLo = -728.22
+  calYHi = 728.22
+
+  x0 = initPos[0]
+  y0 = initPos[1]
+  z0 = initPos[2]
+ 
+  ux0 = initDir[0]
+  uy0 = initDir[1]
+  uz0 = initDir[2]
+
+  if uz0 != 0:
+    calEntry = (initPos + np.multiply((calZTop - z0)/uz0,initDir))
+
+    if calEntry[0] > calXHi:
+      calEntry = (initPos + np.multiply((calXHi - x0)/ux0,initDir))
+    if calEntry[0] < calXLo:
+      calEntry = (initPos + np.multiply((calXLo - x0)/ux0,initDir))
+    if calEntry[1] > calYHi:
+      calEntry = (initPos + np.multiply((calYHi - y0)/uy0,initDir))
+    if calEntry[1] < calYLo:
+      calEntry = (initPos + np.multiply((calYLo - y0)/uy0,initDir))
+ 
+    return calEntry
+  else:
+    return np.zeros(3)
+
+def getExit(initPos,initDir):
+
+  calZTop = -48.12
+  calZBot = -217.47
+  calXLo = -728.22
+  calXHi = 728.22
+  calYLo = -728.22
+  calYHi = 728.22
+
+  x0 = initPos[0]
+  y0 = initPos[1]
+  z0 = initPos[2]
+ 
+  ux0 = initDir[0]
+  uy0 = initDir[1]
+  uz0 = initDir[2]
+
+  if uz0 != 0:
+    calExit  = (initPos + np.multiply((calZBot - z0)/uz0,initDir))
+
+    if calExit[0] > calXHi:
+      calExit = (initPos + np.multiply((calXHi - x0)/ux0,initDir))
+    if calExit[0] < calXLo:
+      calExit = (initPos + np.multiply((calXLo - x0)/ux0,initDir))
+    if calExit[1] > calYHi:
+      calExit = (initPos + np.multiply((calYHi - y0)/uy0,initDir))
+    if calExit[1] < calYLo:
+      calExit = (initPos + np.multiply((calYLo - y0)/uy0,initDir))
+    
+    return calExit
+  else:
+    return np.zeros(3)
 
 def doMomentsAnalysis(dataVec,iniCentroid,coreRadius):
 
@@ -153,8 +218,8 @@ def doMomentsAnalysis(dataVec,iniCentroid,coreRadius):
     #Calculate the covariance matrix on the primary axis
     covCalcStatus = calcCovariance(dataVec,iniCentroid)
 
-    mcaxis = (oldtree.McXDir, oldtree.McYDir, oldtree.McZDir)
-    mcpoint = (oldtree.McX0, oldtree.McY0, oldtree.McZ0)
+    mcaxis  = (oldtree.McXDir, oldtree.McYDir, oldtree.McZDir)
+    mcpoint = (oldtree.McX0,   oldtree.McY0,   oldtree.McZ0)
     mcxdir = mcaxis[0]
     mcydir = mcaxis[1]
     absmcxdir = math.fabs(mcxdir)
@@ -573,6 +638,11 @@ def fillMomentsData(dataVec):
     CalLRmsAsym_mom[0] = m_longRmsAsym 
     CoreEneFrac_mom[0] = m_coreEnergyFrac 
 
+    calEntry = getEntry(m_centroid,m_axis[1])
+    calExit  = getExit(m_centroid,m_axis[1])
+
+    CalDist[0] = np.linalg.norm(calEntry - calExit)
+ 
     CalXDir_mom[0] = m_axis[1,0] 
     CalYDir_mom[0] = m_axis[1,1] 
     CalZDir_mom[0] = m_axis[1,2] 
@@ -703,14 +773,17 @@ def clearTreeVar():
 
 def buildNewTree(num):
 
-  global newfile,newtree,CalTransRms_mom,CalLongRms_mom,CalLRmsAsym_mom,CalLSkew_mom,DirCovXX,DirCovXY,DirCovXZ,DirCovYY,DirCovYZ,DirCovZZ,CentCovXX,CentCovYY,CentCovZZ,CalXDir_mom,CalYDir_mom,CalZDir_mom,CalXEcntr_mom,CalYEcntr_mom,CalZEcntr_mom,ChiSq_mom,CalEnergyRaw,McCharge,McEnergy,McXDir,McYDir,McZDir,McX0,McY0,McZ0,CoreEneFrac_mom,NumIter_mom,NumCoreXtals_mom,CalFullLen_mom, DirPsf, CovPsf, CalEne_mom, VarPhi, VarTheta, OldPsf, CalXDir, CalYDir, CalZDir, McFullLen_mom;
+  global newfile,newtree,CalTransRms_mom,CalLongRms_mom,CalLRmsAsym_mom,CalLSkew_mom,DirCovXX,DirCovXY,DirCovXZ,DirCovYY,DirCovYZ,DirCovZZ,CentCovXX,CentCovYY,CentCovZZ,CalXDir_mom,CalYDir_mom,CalZDir_mom,CalXEcntr_mom,CalYEcntr_mom,CalZEcntr_mom,ChiSq_mom,CalEnergyRaw,McCharge,McEnergy,McXDir,McYDir,McZDir,McX0,McY0,McZ0,CoreEneFrac_mom,NumIter_mom,NumCoreXtals_mom,CalFullLen_mom, DirPsf, CovPsf, CalEne_mom, VarPhi, VarTheta, OldPsf, CalXDir, CalYDir, CalZDir, McFullLen_mom, CalDist, McDist;
 
-  outputName = "CalMom" + "_%i_" % (int(num)) + inputName 
+  outputName = "CalMom" "_%i_" % (int(num)) + inputName 
   newfile_name = outputName
   newfile = ROOT.TFile(newfile_name,"RECREATE")
   newtree = ROOT.TTree("newtree","newtree")
 
   CalEne_mom = np.zeros(1,dtype=float)
+
+  CalDist = np.zeros(1,dtype=float)
+  McDist = np.zeros(1,dtype=float)
 
   DirPsf = np.zeros(1,dtype=float)
   CovPsf = np.zeros(1,dtype=float)
@@ -769,6 +842,8 @@ def buildNewTree(num):
   McFullLen_mom = np.zeros(1,dtype=float)
 
   newtree.Branch('CalEne_mom',CalEne_mom,'CalEne_mom/D') 
+  newtree.Branch('CalDist',CalDist,'CalDist/D') 
+  newtree.Branch('McDist',McDist,'McDist/D') 
 
   newtree.Branch('DirPsf',DirPsf,'DirPsf/D') 
   newtree.Branch('CovPsf',CovPsf,'CovPsf/D') 
@@ -842,6 +917,7 @@ coreRadius = 0.75
 
 inputName = sys.argv[1]
 num = int(sys.argv[2])
+
 oldfile = ROOT.TFile(inputName)
 oldtree = oldfile.Get("tuple")
 
@@ -853,7 +929,7 @@ nent = oldtree.GetEntries()/50
 XtalId = buildIdVec()
 buildNewTree(num)
 
-for nEvent in range(num*nent,(1+num)*nent):
+for nEvent in range(nent*num,nent*(num+1)):
   oldtree.GetEntry(nEvent)
 
 
@@ -875,12 +951,20 @@ for nEvent in range(num*nent,(1+num)*nent):
   McCharge[0] = oldtree.McCharge
   McEnergy[0] = oldtree.McEnergy
   CalEnergyRaw[0] = oldtree.CalEnergyRaw
-  McXDir[0] = oldtree.McXDir 
-  McYDir[0] = oldtree.McYDir 
-  McZDir[0] = oldtree.McZDir 
-  McX0[0] = oldtree.McX0
-  McY0[0] = oldtree.McY0
-  McZ0[0] = oldtree.McZ0
+
+  McDir = (oldtree.McXDir, oldtree.McYDir, oldtree.McZDir)
+  McPoint = (oldtree.McX0, oldtree.McY0, oldtree.McZ0)
+
+  McXDir[0] = McDir[0]
+  McYDir[0] = McDir[1]
+  McZDir[0] = McDir[2]
+  McX0[0] = McPoint[0]
+  McY0[0] = McPoint[1]
+  McZ0[0] = McPoint[2]
+
+  mcEntry = getEntry(McPoint,McDir)
+  mcExit  = getExit(McPoint,McDir)
+  McDist[0] = np.linalg.norm(mcEntry - mcExit)
 
   DirPsf[0] = 180/3.14159*ROOT.sqrt((math.acos(abs(CalZDir_mom[0])) - math.acos(abs(McZDir[0])))**2 + (math.atan(abs(CalYDir_mom[0])/abs(CalXDir_mom[0])) - math.atan(abs(McYDir[0])/abs(McXDir[0])))**2)
 
