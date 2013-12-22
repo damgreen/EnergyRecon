@@ -641,7 +641,7 @@ def fillMomentsData(dataVec):
     calEntry = getEntry(m_centroid,m_axis[1])
     calExit  = getExit(m_centroid,m_axis[1])
 
-    CalDist[0] = np.linalg.norm(calEntry - calExit)
+    CalDist[0] = np.linalg.norm(calEntry - calExit)/nucInterLen
  
     CalXDir_mom[0] = m_axis[1,0] 
     CalYDir_mom[0] = m_axis[1,1] 
@@ -963,7 +963,7 @@ for nEvent in range(nent):
 
   mcEntry = getEntry(McPoint,McDir)
   mcExit  = getExit(McPoint,McDir)
-  McDist[0] = np.linalg.norm(mcEntry - mcExit)
+  McDist[0] = np.linalg.norm(mcEntry - mcExit)/nucInterLen
 
   DirPsf[0] = 180/3.14159*ROOT.sqrt((math.acos(abs(CalZDir_mom[0])) - math.acos(abs(McZDir[0])))**2 + (math.atan(abs(CalYDir_mom[0])/abs(CalXDir_mom[0])) - math.atan(abs(McYDir[0])/abs(McXDir[0])))**2)
 
