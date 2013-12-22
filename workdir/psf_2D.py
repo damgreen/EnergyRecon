@@ -111,7 +111,6 @@ def pass8Plots_momerr(Sigma):
       X = np.append(X,i )
       Y = np.append(Y,j )
       Z = np.append(Z,pass8_momerr(i,j,Sigma))
-      print i,j
 
   zi = griddata(X,Y,Z,Ene,ZDir)
   xim, yim = meshgrid(Ene,ZDir)
@@ -129,10 +128,11 @@ def pass8Plots_momerr(Sigma):
   ylabel("Cos(Incident Angle)")
   titlename = "%i |Covariance Error| for McEnergy and McZDir" % (int(Sigma))
   title(titlename)
-#  figname = "psf%i_2D_pass8_momerr.pdf" % (int(Sigma))
-  figname = "Cov%i_2D_" % (int(Sigma)) + input + ".pdf"
-  print figname
-  plt.savefig(figname)
+  pdfname = "Cov%i_2D_" % (int(Sigma)) + input + ".pdf"
+  pngname = "Cov%i_2D_" % (int(Sigma)) + input + ".png"
+  print pdfname
+  plt.savefig(pngname)
+  plt.savefig(pdfname)
 
 def pass8Plots_old(Sigma):
 
@@ -156,7 +156,6 @@ def pass8Plots_old(Sigma):
       X = np.append(X,i )
       Y = np.append(Y,j )
       Z = np.append(Z,pass8_old(i,j,Sigma))
-      print i,j
 
   zi = griddata(X,Y,Z,Ene,ZDir)
   xim, yim = meshgrid(Ene,ZDir)
@@ -174,10 +173,11 @@ def pass8Plots_old(Sigma):
   ylabel("Cos(Incident Angle)")
   titlename = "%i |CalDir - McDir| for McEnergy and McZDir" % (int(Sigma))
   title(titlename)
-#  figname = "psf%i_2D_pass8_old.pdf" % (int(Sigma))
-  figname = "Old%i_2D_" % (int(Sigma)) + input + ".pdf"
-  print figname
-  plt.savefig(figname)
+  pdfname = "Old%i_2D_" % (int(Sigma)) + input + ".pdf"
+  pngname = "Old%i_2D_" % (int(Sigma)) + input + ".png"
+  print pdfname
+  plt.savefig(pdfname)
+  plt.savefig(pngname)
 
 def pass8Plots_mom(Sigma):
 
@@ -201,7 +201,6 @@ def pass8Plots_mom(Sigma):
       X = np.append(X,i )
       Y = np.append(Y,j )
       Z = np.append(Z,pass8_mom(i,j,Sigma))
-      print i,j
 
   zi = griddata(X,Y,Z,Ene,ZDir)
   xim, yim = meshgrid(Ene,ZDir)
@@ -219,10 +218,11 @@ def pass8Plots_mom(Sigma):
   ylabel("Cos(Incident Angle)")
   titlename = "%i |CalDir-McDir| for McEnergy and McZDir" % (int(Sigma))
   title(titlename)
-#  figname = "psf%i_2D_pass8_mom.pdf" % (int(Sigma))
-  figname = "PSF%i_2D_" % (int(Sigma)) + input + ".pdf"
-  print figname
-  plt.savefig(figname)
+  pdfname = "PSF%i_2D_" % (int(Sigma)) + input + ".pdf"
+  pngname = "PSF%i_2D_" % (int(Sigma)) + input + ".png"
+  print pdfname
+  plt.savefig(pdfname)
+  plt.savefig(pngname)
 
 global dEne
 global dZDir
