@@ -8,112 +8,82 @@ import pylab as plt
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
 
-def pass8_mom(Ene,ZDir,Sigma):
+def getBins(Ene,ZDir,Sigma):
 
   c1 = ROOT.TCanvas( 'c1', 'Example with Formula', 200, 10, 700, 500 )
 
-  hist = ROOT.TH1F("hist","hist",500,0,90)
+  histOld = ROOT.TH1F("histOld","histOld",500,0,90)
+  histCov = ROOT.TH1F("histCov","histCov",500,0,90)
+  histDir = ROOT.TH1F("histDir","histDir",500,0,90)
 
   cut = "DirPsf < 45 && CovPsf < 45 && NumCoreXtals_mom > 10  && ChiSq_mom > 0 && ChiSq_mom < 10 && log10(McEnergy) > %f && log10(McEnergy) < (%f + %f) && abs(McZDir) > %f && abs(McZDir) < (%f + %f)" % (float(Ene), float(Ene), float(dEne), float(ZDir),float(ZDir), float(dZDir))
 
-  tree.Draw("DirPsf>>hist",cut)
+  tree.Draw("DirPsf>>histDir",cut)
+  tree.Draw("CovPsf>>histCov",cut)
+  tree.Draw("OldPsf>>histOld",cut)
 
-  fig_name = "Dir_%f_%f.png" % (float(Ene),float(ZDir))
+  psfDir = -1
+  psfOld = -1
+  psfCov = -1
 
-  if hist.GetEntries() > nent:
-   
-#    c1.SaveAs(fig_name)
+  if histDir.GetEntries() > nent:
+    binDir = 0
+    sumDir = 0
+    while sumDir < (Sigma/100.)*(histDir.GetEntries()):
+      sumDir = sumDir + histDir.GetBinContent(binDir)
+      binDir = binDir + 1
+    psfDir =  histDir.GetBinCenter(binDir)
 
-    bin = 0
-    sum = 0
+  if histCov.GetEntries() > nent:
+    binCov = 0
+    sumCov = 0
+    while sumCov < (Sigma/100.)*(histCov.GetEntries()):
+      sumCov = sumCov + histCov.GetBinContent(binCov)
+      binCov = binCov + 1
+    psfCov =  histCov.GetBinCenter(binCov)
 
-    while sum < (Sigma/100.)*(hist.GetEntries()):
-      sum = sum + hist.GetBinContent(bin)
-      bin = bin + 1
-    return hist.GetBinCenter(bin)
+  if histOld.GetEntries() > nent:
+    binOld = 0
+    sumOld = 0
+    while sumOld < (Sigma/100.)*(histOld.GetEntries()):
+      sumOld = sumOld + histOld.GetBinContent(binOld)
+      binOld = binOld + 1
+    psfOld =  histOld.GetBinCenter(binOld)
 
-  else:
-    return -1
+  return psfDir, psfCov, psfOld
 
-def pass8_momerr(Ene,ZDir,Sigma):
-
-  hist = ROOT.TH1F("hist","hist",500,0,90)
-
-  c1 = ROOT.TCanvas( 'c1', 'Example with Formula', 200, 10, 700, 500 )
-
-  cut = "DirPsf < 45 && CovPsf < 45 && NumCoreXtals_mom > 10 && ChiSq_mom > 0 && ChiSq_mom < 10 && log10(McEnergy) > %f && log10(McEnergy) < (%f + %f) && abs(McZDir) > %f && abs(McZDir) < (%f + %f)" % (float(Ene), float(Ene), float(dEne), float(ZDir),float(ZDir), float(dZDir))
-
-  fig_name = "Cov_%f_%f.png" % (float(Ene),float(ZDir))
-
-  tree.Draw("CovPsf>>hist",cut)
-
-  if hist.GetEntries() > nent:
-
-#    c1.SaveAs(fig_name)
-
-    bin = 0
-    sum = 0
-
-    while sum < (Sigma/100.)*(hist.GetEntries()):
-      sum = sum + hist.GetBinContent(bin)
-      bin = bin + 1
-    return hist.GetBinCenter(bin)
-
-  else:
-    return -1
-
-def pass8_old(Ene,ZDir,Sigma):
-
-  hist = ROOT.TH1F("hist","hist",500,0,90)
-
-  c1 = ROOT.TCanvas( 'c1', 'Example with Formula', 200, 10, 700, 500 )
-
-  cut = "DirPsf < 45 && CovPsf < 45 && NumCoreXtals_mom > 10 && ChiSq_mom > 0 && ChiSq_mom < 10 && log10(McEnergy) > %f && log10(McEnergy) < (%f + %f) && abs(McZDir) > %f && abs(McZDir) < (%f + %f)" % (float(Ene), float(Ene), float(dEne), float(ZDir),float(ZDir), float(dZDir))
-
-  fig_name = "Old_%f_%f.png" % (float(Ene),float(ZDir))
-
-  tree.Draw("OldPsf>>hist",cut)
-
-  if hist.GetEntries() > nent:
-
-#    c1.SaveAs(fig_name)
-
-    bin = 0
-    sum = 0
-
-    while sum < (Sigma/100.)*(hist.GetEntries()):
-      sum = sum + hist.GetBinContent(bin)
-      bin = bin + 1
-    return hist.GetBinCenter(bin)
-
-  else:
-    return -1
-
-def pass8Plots_momerr(Sigma):
+def Plots(Sigma):
 
   global tree
 
-#  filename = "CalMomP8.root"
   file = ROOT.TFile(inputFile)
   tree = file.Get("newtree")
 
-  clf()
-
   X = []
   Y = []
-  Z = []
+  ZDir = []
+  ZCov = []
+  ZOld = []
 
   Ene = np.arange(4,7+dEne,dEne)
-  ZDir = np.arange(0,1+dZDir,dZDir)
+  zDir = np.arange(0,1+dZDir,dZDir)
 
   for i in Ene:
-    for j in ZDir:
+    for j in zDir:
+      psf = getBins(i,j,Sigma)
       X = np.append(X,i )
       Y = np.append(Y,j )
-      Z = np.append(Z,pass8_momerr(i,j,Sigma))
+      ZDir = np.append(ZDir,psf[0])
+      ZCov = np.append(ZCov,psf[1])
+      ZOld = np.append(ZOld,psf[2])
 
-  zi = griddata(X,Y,Z,Ene,ZDir)
-  xim, yim = meshgrid(Ene,ZDir)
+  clf()
+
+  ##
+  #Make the Covariance plots
+  ##
+  zi = griddata(X,Y,ZCov,Ene,zDir)
+  xim, yim = meshgrid(Ene,zDir)
 
   cs = pcolormesh(xim,yim,zi)
   cs.cmap.set_under('w')
@@ -134,76 +104,12 @@ def pass8Plots_momerr(Sigma):
   plt.savefig(pngname)
   plt.savefig(pdfname)
 
-def pass8Plots_old(Sigma):
-
-  global tree
-
-#  filename = "CalMomP8.root"
-  file = ROOT.TFile(inputFile)
-  tree = file.Get("newtree")
-
   clf()
-
-  X = []
-  Y = []
-  Z = []
-
-  Ene = np.arange(4,7+dEne,dEne)
-  ZDir = np.arange(0,1+dZDir,dZDir)
-
-  for i in Ene:
-    for j in ZDir:
-      X = np.append(X,i )
-      Y = np.append(Y,j )
-      Z = np.append(Z,pass8_old(i,j,Sigma))
-
-  zi = griddata(X,Y,Z,Ene,ZDir)
-  xim, yim = meshgrid(Ene,ZDir)
-
-  cs = pcolormesh(xim,yim,zi)
-  cs.cmap.set_under('w')
-  cs.set_clim(0,45)
-  cbar = colorbar(cs)
-
-  cbar.ax.set_ylabel("|CalDir - McDir| (Degrees)")
-
-  xlim(4.25,7)
-  ylim(0,1)
-  xlabel("Log10(Incident Energy) (MeV)")
-  ylabel("Cos(Incident Angle)")
-  titlename = "%i |CalDir - McDir| for McEnergy and McZDir" % (int(Sigma))
-  title(titlename)
-  pdfname = "Old%i_2D_" % (int(Sigma)) + input + ".pdf"
-  pngname = "Old%i_2D_" % (int(Sigma)) + input + ".png"
-  print pdfname
-  plt.savefig(pdfname)
-  plt.savefig(pngname)
-
-def pass8Plots_mom(Sigma):
-
-  global tree
-
-#  filename = "CalMomP8.root"
-  file = ROOT.TFile(inputFile)
-  tree = file.Get("newtree")
-
-  clf()
-
-  X = []
-  Y = []
-  Z = []
-
-  Ene = np.arange(4,7+dEne,dEne)
-  ZDir = np.arange(0,1+dZDir,dZDir)
-
-  for i in Ene:
-    for j in ZDir:
-      X = np.append(X,i )
-      Y = np.append(Y,j )
-      Z = np.append(Z,pass8_mom(i,j,Sigma))
-
-  zi = griddata(X,Y,Z,Ene,ZDir)
-  xim, yim = meshgrid(Ene,ZDir)
+  ##
+  #Make the modified direction plots
+  ##
+  zi = griddata(X,Y,ZDir,Ene,zDir)
+  xim, yim = meshgrid(Ene,zDir)
 
   cs = pcolormesh(xim,yim,zi)
   cs.cmap.set_under('w')
@@ -221,8 +127,34 @@ def pass8Plots_mom(Sigma):
   pdfname = "PSF%i_2D_" % (int(Sigma)) + input + ".pdf"
   pngname = "PSF%i_2D_" % (int(Sigma)) + input + ".png"
   print pdfname
-  plt.savefig(pdfname)
   plt.savefig(pngname)
+  plt.savefig(pdfname)
+
+  clf()
+  ##
+  #Make the old direction plots
+  ##
+  zi = griddata(X,Y,ZOld,Ene,zDir)
+  xim, yim = meshgrid(Ene,zDir)
+
+  cs = pcolormesh(xim,yim,zi)
+  cs.cmap.set_under('w')
+  cs.set_clim(0,45)
+  cbar = colorbar(cs)
+
+  cbar.ax.set_ylabel("|CalDir - McDir| (Degrees)")
+
+  xlim(4.25,7)
+  ylim(0,1)
+  xlabel("Log10(Incident Energy) (MeV)")
+  ylabel("Cos(Incident Angle)")
+  titlename = "%i |CalDir - McDir| for McEnergy and McZDir" % (int(Sigma))
+  title(titlename)
+  pdfname = "Old%i_2D_" % (int(Sigma)) + input + ".pdf"
+  pngname = "Old%i_2D_" % (int(Sigma)) + input + ".png"
+  print pdfname
+  plt.savefig(pngname)
+  plt.savefig(pdfname)
 
 global dEne
 global dZDir
@@ -238,7 +170,5 @@ inputFile = input + ".root"
 
 con = (68,95,99)
 for i in con:
-  pass8Plots_mom(i)
-  pass8Plots_momerr(i)
-  pass8Plots_old(i)
+  Plots(i)
 
