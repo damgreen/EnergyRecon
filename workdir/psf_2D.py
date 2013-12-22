@@ -1,5 +1,6 @@
-#!/ScienceTools/i386-apple-darwin10.8.0/bin/python
+#!/usr/bin/python
 
+import sys
 import math
 import ROOT
 import numpy as np
@@ -92,8 +93,8 @@ def pass8Plots_momerr(Sigma):
 
   global tree
 
-  filename = "CalMomP8.root"
-  file = ROOT.TFile(filename)
+#  filename = "CalMomP8.root"
+  file = ROOT.TFile(inputFile)
   tree = file.Get("newtree")
 
   clf()
@@ -120,15 +121,16 @@ def pass8Plots_momerr(Sigma):
   cs.set_clim(0,45)
   cbar = colorbar(cs)
 
-  cbar.ax.set_ylabel("|Pass8Dir_momerr| (Degrees)")
+  cbar.ax.set_ylabel("|Covariance Error| (Degrees)")
 
   xlim(4.25,7)
   ylim(0,1)
-  xlabel("Log10(McEnergy)")
-  ylabel("McZDir")
-  titlename = "%i Pass8_mom Error for McEnergy and McZDir" % (int(Sigma))
+  xlabel("Log10(Incident Energy) (MeV)")
+  ylabel("Cos(Incident Angle)")
+  titlename = "%i |Covariance Error| for McEnergy and McZDir" % (int(Sigma))
   title(titlename)
-  figname = "psf%i_2D_pass8_momerr.pdf" % (int(Sigma))
+#  figname = "psf%i_2D_pass8_momerr.pdf" % (int(Sigma))
+  figname = "Cov%i_2D_" % (int(Sigma)) + input + ".pdf"
   print figname
   plt.savefig(figname)
 
@@ -136,8 +138,8 @@ def pass8Plots_old(Sigma):
 
   global tree
 
-  filename = "CalMomP8.root"
-  file = ROOT.TFile(filename)
+#  filename = "CalMomP8.root"
+  file = ROOT.TFile(inputFile)
   tree = file.Get("newtree")
 
   clf()
@@ -170,9 +172,10 @@ def pass8Plots_old(Sigma):
   ylim(0,1)
   xlabel("Log10(Incident Energy) (MeV)")
   ylabel("Cos(Incident Angle)")
-  titlename = "%i%% Pass8 |CalDir - McDir| for McEnergy and McZDir" % (int(Sigma))
+  titlename = "%i |CalDir - McDir| for McEnergy and McZDir" % (int(Sigma))
   title(titlename)
-  figname = "psf%i_2D_pass8_old.pdf" % (int(Sigma))
+#  figname = "psf%i_2D_pass8_old.pdf" % (int(Sigma))
+  figname = "Old%i_2D_" % (int(Sigma)) + input + ".pdf"
   print figname
   plt.savefig(figname)
 
@@ -180,8 +183,8 @@ def pass8Plots_mom(Sigma):
 
   global tree
 
-  filename = "CalMomP8.root"
-  file = ROOT.TFile(filename)
+#  filename = "CalMomP8.root"
+  file = ROOT.TFile(inputFile)
   tree = file.Get("newtree")
 
   clf()
@@ -214,19 +217,24 @@ def pass8Plots_mom(Sigma):
   ylim(0,1)
   xlabel("Log10(Incident Energy) (MeV)")
   ylabel("Cos(Incident Angle)")
-  titlename = "%i%% |CalDir-McDir| for McEnergy and McZDir" % (int(Sigma))
+  titlename = "%i |CalDir-McDir| for McEnergy and McZDir" % (int(Sigma))
   title(titlename)
-  figname = "psf%i_2D_pass8_mom.pdf" % (int(Sigma))
+#  figname = "psf%i_2D_pass8_mom.pdf" % (int(Sigma))
+  figname = "PSF%i_2D_" % (int(Sigma)) + input + ".pdf"
   print figname
   plt.savefig(figname)
 
 global dEne
 global dZDir
 global nent 
+global inputFile
 
 dEne = (7-4.25)/10.
 dZDir = 1/10.
 nent = 10
+
+input = sys.argv[1]
+inputFile = input + ".root"
 
 con = (68,95,99)
 for i in con:

@@ -2,7 +2,9 @@ import ROOT
 ROOT.gROOT.SetStyle("Plain")
 ROOT.gStyle.SetOptStat(0)
 
-file = ROOT.TFile("CalMomP8.root")
+
+inputFile = argv[1]
+file = ROOT.TFile(inputFile)
 tree = file.Get("newtree")
 
 c1 = ROOT.TCanvas( 'c1', 'Example with Formula', 200, 10, 700, 500 )
