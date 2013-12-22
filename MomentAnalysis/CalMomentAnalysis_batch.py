@@ -701,11 +701,11 @@ def clearTreeVar():
   McFullLen_mom = np.zeros(1,dtype=float)
 
 
-def buildNewTree():
+def buildNewTree(num):
 
   global newfile,newtree,CalTransRms_mom,CalLongRms_mom,CalLRmsAsym_mom,CalLSkew_mom,DirCovXX,DirCovXY,DirCovXZ,DirCovYY,DirCovYZ,DirCovZZ,CentCovXX,CentCovYY,CentCovZZ,CalXDir_mom,CalYDir_mom,CalZDir_mom,CalXEcntr_mom,CalYEcntr_mom,CalZEcntr_mom,ChiSq_mom,CalEnergyRaw,McCharge,McEnergy,McXDir,McYDir,McZDir,McX0,McY0,McZ0,CoreEneFrac_mom,NumIter_mom,NumCoreXtals_mom,CalFullLen_mom, DirPsf, CovPsf, CalEne_mom, VarPhi, VarTheta, OldPsf, CalXDir, CalYDir, CalZDir, McFullLen_mom;
 
-  outputName = "CalMom" + inputName 
+  outputName = "CalMom" + "_%i_" % (int(num)) + inputName 
   newfile_name = outputName
   newfile = ROOT.TFile(newfile_name,"RECREATE")
   newtree = ROOT.TTree("newtree","newtree")
@@ -841,19 +841,19 @@ transScaleFactorBoost = 2
 coreRadius = 0.75
 
 inputName = sys.argv[1]
+num = int(sys.argv[2])
 oldfile = ROOT.TFile(inputName)
 oldtree = oldfile.Get("tuple")
 
 XtalCut = 400
 
-nent = oldtree.GetEntries()
+nent = oldtree.GetEntries()/50
 #nent = 1000
 
 XtalId = buildIdVec()
-buildNewTree()
+buildNewTree(num)
 
-
-for nEvent in range(nent):
+for nEvent in range(num*nent,(1+num)*nent):
   oldtree.GetEntry(nEvent)
 
 
