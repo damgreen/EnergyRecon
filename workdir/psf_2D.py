@@ -78,7 +78,6 @@ def Plots(Sigma):
       ZOld = np.append(ZOld,psf[2])
 
   clf()
-
   ##
   #Make the Covariance plots
   ##
