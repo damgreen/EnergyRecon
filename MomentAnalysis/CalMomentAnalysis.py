@@ -138,7 +138,7 @@ def doMomentsAnalysis(dataVec,iniCentroid,coreRadius):
 
   chisq = -1
 
-  if len(dataVec) < 2:
+  if len(dataVec) < 3:
     return -1
  
   m_moment = np.zeros(3)
@@ -679,30 +679,22 @@ def buildIdVec():
 
   return XtalId
 
-def buildEneVec(tree):
+def buildPosEneVec(tree):
 
-  XtalEne = np.ndarray(Tow*Log*Lay)
+  XtalPosEne = []
   for nXtal in range(Tow*Log*Lay):
-    XtalEne[nXtal] = tree.CalXtalEnePos[nXtal]
+    for iPos in range(Pos):  
+      XtalPosEne = np.append(XtalPosEne,tree.CalXtalPos[nXtal*Pos + iPos])
+    XtalPosEne = np.append(XtalPosEne,tree.CalXtalEnePos[nXtal])
 
-  return XtalEne
-
-def buildPosVec(tree):
-
-  XtalPos = np.ndarray(Tow*Log*Lay*Pos)
-  for nXtal in range(Tow*Log*Lay*Pos):
-    XtalPos[nXtal] = tree.CalXtalPos[nXtal]
-  XtalPos = XtalPos.reshape(Tow*Lay*Log,Pos)
-
-  return XtalPos
+  XtalPosEne = XtalPosEne.reshape(Tow*Log*Lay,(Pos+1))
+  return XtalPosEne
 
 def buildDataVec(tree,XtalId):
 
-  XtalEne = buildEneVec(tree)
-  XtalPos = buildPosVec(tree)
+  XtalPosEne = buildPosEneVec(tree)
   
-  dataVec = np.concatenate((XtalId,XtalPos),axis=1)
-  dataVec = np.insert(dataVec,6,XtalEne,axis=1)
+  dataVec = np.concatenate((XtalId,XtalPosEne),axis=1)
   dataVec = np.insert(dataVec,7,0,axis=1)
   for n in range(len(dataVec)):
     dataVec[n,7] = math.fabs(point2Pos(dataVec[n]))
@@ -931,7 +923,6 @@ buildNewTree()
 for nEvent in range(nent):
   oldtree.GetEntry(nEvent)
 
-
   clearTreeVar()
 
   #Build the data Vector with all of the needed information
@@ -970,14 +961,14 @@ for nEvent in range(nent):
   VarPhi[0] = (CalYDir_mom[0]*CalYDir_mom[0]*DirCovXX[0] + CalXDir_mom[0]*CalXDir_mom[0]*DirCovYY[0] -  2*CalXDir_mom[0]*CalYDir_mom[0]*DirCovXY[0])/(CalXDir_mom[0]*CalXDir_mom[0] + CalYDir_mom[0]*CalYDir_mom[0])**2 
  
   VarTheta[0] = DirCovZZ[0]/(1-CalZDir_mom[0]*CalZDir_mom[0])
-
+ 
   CovPsf[0] = ROOT.sqrt(VarPhi[0] + VarTheta[0])*180/3.14159
 
   OldPsf[0] = 180/3.14159*ROOT.sqrt((math.acos(abs(CalZDir[0])) - math.acos(abs(McZDir[0])))**2 + (math.atan(abs(CalYDir[0])/abs(CalXDir[0])) - math.atan(abs(McYDir[0])/abs(McXDir[0])))**2)
 
   newtree.Fill()
   
-  if nEvent % 1000 == 0:
-    print "Event ", nEvent
+#  if nEvent % 1000 == 0:
+  print "Event ", nEvent
 
 newtree.Write()
