@@ -3,6 +3,13 @@
 import math,sys
 import numpy as np
 import ROOT
+from array import *
+
+def defineArray(type,size):
+     obj = array(type)
+     for f in range(0,size):
+         obj.append(0)
+     return obj
 
 def getLongitudinalPositionErr(longPos,hit,ene):
   axis = (m_axis[1,0], m_axis[1,1], m_axis[1,2])
@@ -216,7 +223,7 @@ def doMomentsAnalysis(dataVec,iniCentroid,coreRadius):
         m_axis[iroot] = np.multiply(-1,m_axis[iroot])
 
     #Calculate the covariance matrix on the primary axis
-    covCalcStatus = calcCovariance(dataVec,iniCentroid)
+#    covCalcStatus = calcCovariance(dataVec,iniCentroid)
 
     mcaxis  = (oldtree.McXDir, oldtree.McYDir, oldtree.McZDir)
     mcpoint = (oldtree.McX0,   oldtree.McY0,   oldtree.McZ0)
@@ -628,11 +635,13 @@ def fillMomentsData(dataVec):
     McFullLen_mom[0] = m_mcfullLength 
     CalEne_mom[0] = m_weightSum
  
-  momCentroidErr = centroidCovMatrix 
-  momAxisErr =  cov
-  
-  if m_numIterations > 1:
     ChiSq_mom[0] = doMomentsAnalysis(dataVec,momCentroid,coreRadius)
+
+    covCalcStatus = calcCovariance(dataVec,m_centroid)
+    momCentroidErr = centroidCovMatrix 
+    momAxisErr =  cov
+  
+#  if m_numIterations > 1:
     CalLongRms_mom[0] = m_longRms 
     CalTransRms_mom[0] = m_transRms
     CalLRmsAsym_mom[0] = m_longRmsAsym 
@@ -698,8 +707,12 @@ def buildPosVec(tree):
 
 def buildDataVec(tree,XtalId):
 
-  XtalEne = buildEneVec(tree)
-  XtalPos = buildPosVec(tree)
+#  XtalEne = buildEneVec(tree)
+#  XtalPos = buildPosVec(tree)
+
+  XtalPos = np.array(np.reshape(CalXtalPos,newshape=(Tow*Lay*Log,Pos)))
+  XtalEne = np.array(CalXtalEnePos)
+
   
   dataVec = np.concatenate((XtalId,XtalPos),axis=1)
   dataVec = np.insert(dataVec,6,XtalEne,axis=1)
@@ -921,10 +934,16 @@ num = int(sys.argv[2])
 oldfile = ROOT.TFile(inputName)
 oldtree = oldfile.Get("tuple")
 
+CalXtalEnePos = defineArray('f',Tow*Log*Lay)
+CalXtalPos = defineArray('f',Tow*Log*Lay*Pos)
+
+oldtree.SetBranchAddress('CalXtalEnePos',CalXtalEnePos)
+oldtree.SetBranchAddress('CalXtalPos',CalXtalPos)
+
 XtalCut = 400
 
-nent = oldtree.GetEntries()/50
-#nent = 1000
+#nent = oldtree.GetEntries()/100
+nent = 1000
 
 XtalId = buildIdVec()
 buildNewTree(num)
@@ -967,6 +986,8 @@ for nEvent in range(nent*num,nent*(num+1)):
   McDist[0] = np.linalg.norm(mcEntry - mcExit)/nucInterLen
 
   DirPsf[0] = 180/3.14159*ROOT.sqrt((math.acos(abs(CalZDir_mom[0])) - math.acos(abs(McZDir[0])))**2 + (math.atan(abs(CalYDir_mom[0])/abs(CalXDir_mom[0])) - math.atan(abs(McYDir[0])/abs(McXDir[0])))**2)
+
+  print DirPsf[0]
 
   VarPhi[0] = (CalYDir_mom[0]*CalYDir_mom[0]*DirCovXX[0] + CalXDir_mom[0]*CalXDir_mom[0]*DirCovYY[0] -  2*CalXDir_mom[0]*CalYDir_mom[0]*DirCovXY[0])/(CalXDir_mom[0]*CalXDir_mom[0] + CalYDir_mom[0]*CalYDir_mom[0])**2 
  

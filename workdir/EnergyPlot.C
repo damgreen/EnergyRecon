@@ -3,7 +3,7 @@ gStyle->SetOptStat(0);
 gStyle->SetPalette(1);
 gStyle->SetPadRightMargin(0.15);
 
-TFile f("CalMomP7.root");
+TFile f("CalMomPass7.root");
 
 TCut cut   = "DirPsf < 45 && CovPsf < 45 && ChiSq_mom > 0 && ChiSq_mom < 10 && NumCoreXtals_mom > 10";
 TCut cut01 = "DirPsf < 45 && CovPsf < 45 && ChiSq_mom > 0 && ChiSq_mom < 10 && NumCoreXtals_mom > 10 && CalFullLen_mom < 1";
@@ -223,7 +223,7 @@ gStyle->SetOptStat(0);
 gStyle->SetPalette(1);
 gStyle->SetPadRightMargin(0.15);
 
-TFile f("CalMomP8.root");
+TFile f("CalMomPass8.root");
 
 TCut cut   = "DirPsf < 45 && CovPsf < 45 && ChiSq_mom > 0 && ChiSq_mom < 10 && NumCoreXtals_mom > 10";
 TCut cut01 = "DirPsf < 45 && CovPsf < 45 && ChiSq_mom > 0 && ChiSq_mom < 10 && NumCoreXtals_mom > 10 && CalFullLen_mom < 1";

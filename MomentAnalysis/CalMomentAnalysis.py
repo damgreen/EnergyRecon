@@ -1,18 +1,27 @@
 #!/usr/bin/python
 
+import operator
 import math,sys
 import numpy as np
 import ROOT
+from array import *
+
+def defineArray(type,size):
+     obj = array(type)
+     for f in range(0,size):
+         obj.append(0)
+     return obj
 
 def getLongitudinalPositionErr(longPos,hit,ene):
   axis = (m_axis[1,0], m_axis[1,1], m_axis[1,2])
   x = math.fabs(longPos)
   p0 = 0.1 + math.exp(0.045*x-5.)
-  diffVec = np.subtract(hit,m_centroid)
-  crossProd = np.cross(axis,diffVec)
 
-  c = np.dot(diffVec,axis)
-  d = math.sqrt(np.dot(crossProd,crossProd))
+  diffVec = (hit[0] - m_centroid[0], hit[1] - m_centroid[1], hit[2] - m_centroid[2])
+  crossProd = (diffVec[1]*axis[2] - diffVec[2]*axis[1], diffVec[2]*axis[0] - diffVec[0]*axis[2], diffVec[0]*axis[1] - diffVec[1]*axis[0])
+
+  c = (diffVec[0])*axis[0] + (diffVec[1])*axis[1] + (diffVec[2])*axis[2]
+  d = math.sqrt(crossProd[0]*crossProd[0] + crossProd[1]*crossProd[1] + crossProd[2]*crossProd[2])
 
   p0 = min(8., p0*(1. + 0.0073*c + 0.11*d - 0.0003*c*d))
   p1 = max(4.2 - math.exp(0.09*x-11.), 0.)
@@ -46,14 +55,13 @@ def point2Pos(dataVec):
   return xLong
 
 def calcCoordAlongAxis(point,centroid,axis):
-  diffVec = np.subtract(point,centroid)
-  dotProd = np.dot(diffVec,axis)
+  dotProd = (point[0] - centroid[0])*axis[0] + (point[1] - centroid[1])*axis[1] + (point[2] - centroid[2])*axis[2] 
   return dotProd
 
 def calcDistToAxis(point,centroid,axis):
-  diffVec = np.subtract(centroid,point)
-  crossProd = np.cross(axis,diffVec)
-  return math.sqrt(np.dot(crossProd,crossProd))
+  diffVec = (point[0] - centroid[0], point[1] - centroid[1], point[2] - centroid[2])
+  crossProd = (diffVec[1]*axis[2] - diffVec[2]*axis[1], diffVec[2]*axis[0] - diffVec[0]*axis[2], diffVec[0]*axis[1] - diffVec[1]*axis[0]) 
+  return math.sqrt(crossProd[0]*crossProd[0] + crossProd[1]*crossProd[1] + crossProd[2]*crossProd[2])
 
 def getEntry(initPos,initDir):
 
@@ -138,7 +146,7 @@ def doMomentsAnalysis(dataVec,iniCentroid,coreRadius):
 
   chisq = -1
 
-  if len(dataVec) < 3:
+  if len(dataVec) < XtalMin:
     return -1
  
   m_moment = np.zeros(3)
@@ -160,8 +168,11 @@ def doMomentsAnalysis(dataVec,iniCentroid,coreRadius):
     #Get all of the relavent data from the dataVec
     point = (dataVec[nXtal,3],dataVec[nXtal,4],dataVec[nXtal,5])
     weight = dataVec[nXtal,6]
-    hit = np.subtract(point,iniCentroid)
-    Rsq = np.dot(hit,hit)
+    hit = np.zeros(3)
+    hit[0] = point[0] - iniCentroid[0]
+    hit[1] = point[1] - iniCentroid[1]
+    hit[2] = point[2] - iniCentroid[2]
+    Rsq = hit[0]*hit[0] + hit[1]*hit[1] + hit[2]*hit[2]
     xprm = hit[0]
     yprm = hit[1]
     zprm = hit[2]
@@ -216,7 +227,7 @@ def doMomentsAnalysis(dataVec,iniCentroid,coreRadius):
         m_axis[iroot] = np.multiply(-1,m_axis[iroot])
 
     #Calculate the covariance matrix on the primary axis
-    covCalcStatus = calcCovariance(dataVec,iniCentroid)
+#    covCalcStatus = calcCovariance(dataVec,iniCentroid)
 
     mcaxis  = (oldtree.McXDir, oldtree.McYDir, oldtree.McZDir)
     mcpoint = (oldtree.McX0,   oldtree.McY0,   oldtree.McZ0)
@@ -244,8 +255,8 @@ def doMomentsAnalysis(dataVec,iniCentroid,coreRadius):
       distToAxis = calcDistToAxis(point,m_centroid,m_axis[1])
       dataVec[nXtal,8] = distToAxis
 
-      t = calcCoordAlongAxis(point,m_centroid,m_axis[1])
-      tmc = calcCoordAlongAxis(point,mcpoint,mcaxis)
+      t   = calcCoordAlongAxis(point, m_centroid ,m_axis[1])
+      tmc = calcCoordAlongAxis(point, mcpoint    ,mcaxis)
 
       weight = dataVec[nXtal,6]
 
@@ -309,83 +320,47 @@ def calcCovariance(dataVec,iniCentroid):
   global cov
   global centroidCovMatrix
 
-  L0 = m_moment[0]
-  L1 = m_moment[1]
-  L2 = m_moment[2]
+  (L0, L1, L2) = m_moment
 
   S = m_axis
-  Sp = np.zeros(27).reshape(9,3)
 
-  Sp[0,1] = S[2,0]
-  Sp[0,2] = -1*S[1,0]
-  Sp[1,0] = -1*S[2,0]
-  Sp[1,2] = S[0,0]
-  Sp[2,0] = S[1,0]
-  Sp[2,1] = -1*S[0,0]
-  Sp[3,1] = S[2,1]
-  Sp[3,2] = -1*S[1,1]
-  Sp[4,0] = -1*S[2,1]
-  Sp[4,2] = S[0,1]
-  Sp[5,0] = S[1,1]
-  Sp[5,1] = -1*S[0,1]
-  Sp[6,1] = S[2,2]
-  Sp[6,2] = -1*S[1,2]
-  Sp[7,0] = -1*S[2,2]
-  Sp[7,2] = S[0,2]
-  Sp[8,0] = S[1,2]
-  Sp[8,1] = -1*S[0,2]
+  Sp = np.matrix([ [ 0     ,  S[2,0], -S[1,0]],
+                   [-S[2,0],  0     ,  S[0,0]],
+                   [ S[1,0], -S[0,0],  0     ],
+                   [ 0     ,  S[2,1], -S[1,1]],
+                   [-S[2,1],  0     ,  S[0,1]],
+                   [ S[1,1], -S[0,1],  0     ],
+                   [ 0     ,  S[2,2], -S[1,2]],
+                   [-S[2,2],  0     ,  S[0,2]],
+                   [ S[1,2], -S[0,2],  0     ] ], dtype = 'd')
 
-  D = np.zeros(54).reshape(6,9)
-
-  D[0,0] = 1.
-  D[1,4] = 1.
-  D[2,8] = 1.
-  D[3,1] = 0.5
-  D[3,3] = 0.5
-  D[4,2] = 0.5
-  D[4,6] = 0.5
-  D[5,5] = 0.5
-  D[5,7] = 0.5
-
-  Dplus = np.zeros(54).reshape(9,6)
-  Dplus[0,0] = 1
-  Dplus[1,3] = 1
-  Dplus[2,4] = 1
-  Dplus[3,3] = 1
-  Dplus[4,1] = 1
-  Dplus[5,5] = 1
-  Dplus[6,4] = 1
-  Dplus[7,5] = 1
-  Dplus[8,2] = 1
+  Dplus = np.matrix([ [ 1.,  0.,  0.,  0.,  0.,  0.],
+                    [ 0.,  0.,  0.,  1.,  0.,  0.],
+                    [ 0.,  0.,  0.,  0.,  1.,  0.],
+                    [ 0.,  0.,  0.,  1.,  0.,  0.],
+                    [ 0.,  1.,  0.,  0.,  0.,  0.],
+                    [ 0.,  0.,  0.,  0.,  0.,  1.],
+                    [ 0.,  0.,  0.,  0.,  1.,  0.],
+                    [ 0.,  0.,  0.,  0.,  0.,  1.],
+                    [ 0.,  0.,  1.,  0.,  0.,  0.]], dtype = 'd')
 
   g1 = 0.5/(L2 - L1)
   g2 = 0.5/(L0 - L2)
   g3 = 0.5/(L1 - L0)
-  Gplus = np.zeros(54).reshape(6,9)
-  Gplus[0,0] = 1
-  Gplus[1,4] = 1
-  Gplus[2,8] = 1
-  Gplus[3,5] = g1
-  Gplus[3,7] = g1
-  Gplus[4,2] = g2
-  Gplus[4,6] = g2
-  Gplus[5,1] = g3
-  Gplus[5,3] = g3
 
-  Skron = np.kron(S,S)
+  Gplus = np.matrix([ [1, 0 , 0 , 0 , 0, 0 , 0 , 0 , 0],
+                      [0, 0 , 0 , 0 , 1, 0 , 0 , 0 , 0],
+                      [0, 0 , 0 , 0 , 0, 0 , 0 , 0 , 1],
+                      [0, 0 , 0 , 0 , 0, g1, 0 , g1, 0],
+                      [0, 0 , g2, 0 , 0, 0 , g2, 0 , 0],
+                      [0, g3, 0 , g3, 0, 0 , 0 , 0 , 0] ], dtype = 'd')
 
-  Finverse = np.asmatrix(Gplus)*np.asmatrix(Skron)*np.asmatrix(Dplus)
+  Finverse = (Gplus)*(np.kron(S,S))*(Dplus)
 
-  K_left = np.zeros(72).reshape(12,6)
+  K_low   = np.c_[np.identity(3), np.zeros(9).reshape(3,3)]
+  K_left = np.c_['0', np.c_['1', np.zeros(27).reshape(9,3), Sp], K_low]
 
-  for i in range(9):
-    for j in range(3):
-       K_left[i,j+3] = Sp[i,j]
-  K_left[9,0] = 1
-  K_left[10,1] = 1
-  K_left[11,2] = 1
-
-  K = np.asmatrix(K_left)*np.asmatrix(Finverse)
+  K = (K_left)*(Finverse)
 
   cIxx_xx = 0.0;
   cIxx_yy = 0.0;
@@ -428,7 +403,7 @@ def calcCovariance(dataVec,iniCentroid):
 
   for nXtal in range(len(dataVec)):
     pos = (dataVec[nXtal,3],dataVec[nXtal,4],dataVec[nXtal,5])
-    hit = np.subtract(pos,m_centroid)
+    hit = ( pos[0] - m_centroid[0], pos[1] - m_centroid[1], pos[2] - m_centroid[2])
     layer = dataVec[nXtal,3]
     xLong = dataVec[nXtal,7]
     x = hit[0]
@@ -487,50 +462,18 @@ def calcCovariance(dataVec,iniCentroid):
     cCyy += w2 * dy2 + y2 * dw2 * ww;
     cCzz += w2 * dz2 + z2 * dw2 * ww;
 
-  centroidCovMatrix = np.zeros(9).reshape(3,3)
-  centroidCovMatrix[0,0] = cCxx
-  centroidCovMatrix[1,1] = cCyy
-  centroidCovMatrix[2,2] = cCzz
+  centroidCovMatrix = (cCxx, cCyy, cCzz)
 
-  VdICovMatrix = np.zeros(36).reshape(6,6)
-  VdICovMatrix[0,0] = cIxx_xx;
-  VdICovMatrix[0,1] = cIxx_yy;
-  VdICovMatrix[0,2] = cIxx_zz;
-  VdICovMatrix[0,3] = cIxx_xy;
-  VdICovMatrix[0,4] = cIxx_xz;
-  VdICovMatrix[0,5] = cIxx_yz;
-  VdICovMatrix[1,0] = cIxx_yy;
-  VdICovMatrix[1,1] = cIyy_yy;
-  VdICovMatrix[1,2] = cIyy_zz;
-  VdICovMatrix[1,3] = cIyy_xy;
-  VdICovMatrix[1,4] = cIyy_xz;
-  VdICovMatrix[1,5] = cIyy_yz;
-  VdICovMatrix[2,0] = cIxx_zz;
-  VdICovMatrix[2,1] = cIyy_zz;
-  VdICovMatrix[2,2] = cIzz_zz;
-  VdICovMatrix[2,3] = cIzz_xy;
-  VdICovMatrix[2,4] = cIzz_xz;
-  VdICovMatrix[2,5] = cIzz_yz;
-  VdICovMatrix[3,0] = cIxx_xy;
-  VdICovMatrix[3,1] = cIyy_xy;
-  VdICovMatrix[3,2] = cIzz_xy;
-  VdICovMatrix[3,3] = cIxy_xy;
-  VdICovMatrix[3,4] = cIxy_xz;
-  VdICovMatrix[3,5] = cIxy_yz;
-  VdICovMatrix[4,0] = cIxx_xz;
-  VdICovMatrix[4,1] = cIyy_xz;
-  VdICovMatrix[4,2] = cIzz_xz;
-  VdICovMatrix[4,3] = cIxy_xz;
-  VdICovMatrix[4,4] = cIxz_xz;
-  VdICovMatrix[4,5] = cIxz_yz;
-  VdICovMatrix[5,0] = cIxx_yz;
-  VdICovMatrix[5,1] = cIyy_yz;
-  VdICovMatrix[5,2] = cIzz_yz;
-  VdICovMatrix[5,3] = cIxy_yz;
-  VdICovMatrix[5,4] = cIxz_yz;
-  VdICovMatrix[5,5] = cIyz_yz;
+  VdICovMatrix = np.matrix([
+             [cIxx_xx, cIxx_yy, cIxx_zz, cIxx_xy, cIxx_xz, cIxx_yz],
+             [cIxx_yy, cIyy_yy, cIyy_zz, cIyy_xy, cIyy_xz, cIyy_yz],
+             [cIxx_zz, cIyy_zz, cIzz_zz, cIzz_xy, cIzz_xz, cIzz_yz],
+             [cIxx_xy, cIyy_xy, cIzz_xy, cIxy_xy, cIxy_xz, cIxy_yz],
+             [cIxx_xz, cIyy_xz, cIzz_xz, cIxy_xz, cIxz_xz, cIxz_yz],
+             [cIxx_yz, cIyy_yz, cIzz_yz, cIxy_yz, cIxz_yz, cIyz_yz]],
+             dtype = 'd')
 
-  errorCovarianceMatrix = np.asmatrix(K)*np.asmatrix(VdICovMatrix)*np.asmatrix(K.transpose())
+  errorCovarianceMatrix = (K)*(VdICovMatrix)*(K.transpose())
 
   cov = np.zeros(9).reshape(3,3)
   cov[0,0] = errorCovarianceMatrix[1,1]
@@ -569,9 +512,9 @@ def doIterativeMomentAnalysis(dataVec,inputCentroid,transScaleFactor,transScaleF
 
     centroid = m_centroid
     transRms = m_transRms
-  
+
     data = data[data[:,8].argsort()] 
-    
+
     iterate = False
     m_numIterations += 1
 
@@ -584,18 +527,18 @@ def doIterativeMomentAnalysis(dataVec,inputCentroid,transScaleFactor,transScaleF
         break
     transScaleFactor *= transScaleFactorBoost
 
-    if len(data) < 3:
+    if len(data) < XtalMin:
       break
 
   return chisq
 
 def fillMomentsData(dataVec):
 
-  momCentroid = np.zeros(Pos) 
-  momAxis = np.zeros(Pos) 
-
   ene = 0
   pCluster = (0,0,0)
+
+  if len(dataVec) < XtalMin:
+    return
 
   for nXtal in range(len(dataVec)):
     eneXtal = dataVec[nXtal,6]
@@ -615,24 +558,15 @@ def fillMomentsData(dataVec):
   chiSq = doIterativeMomentAnalysis(dataVec,inputCentroid,transScaleFactor,transScaleFactorBoost,coreRadius)
   dataVec = data
   if chiSq >=0 and m_axis[1,2] > 0.001 and m_numIterations > 1:
-    momCentroid[0] = m_centroid[0]
-    momCentroid[1] = m_centroid[1]
-    momCentroid[2] = m_centroid[2]
-    momAxis[0] = m_axis[1,0]
-    momAxis[1] = m_axis[1,1]
-    momAxis[2] = m_axis[1,2]
+    ChiSq_mom[0] = doMomentsAnalysis(dataVec,m_centroid,coreRadius)
     NumIter_mom[0] = m_numIterations
     NumCoreXtals_mom[0] = numXtals - m_numDroppedPoints
     CalLSkew_mom[0] = m_longSkewness 
     CalFullLen_mom[0] = m_fullLength 
     McFullLen_mom[0] = m_mcfullLength 
     CalEne_mom[0] = m_weightSum
- 
-  momCentroidErr = centroidCovMatrix 
-  momAxisErr =  cov
+
   
-  if m_numIterations > 1:
-    ChiSq_mom[0] = doMomentsAnalysis(dataVec,momCentroid,coreRadius)
     CalLongRms_mom[0] = m_longRms 
     CalTransRms_mom[0] = m_transRms
     CalLRmsAsym_mom[0] = m_longRmsAsym 
@@ -640,7 +574,6 @@ def fillMomentsData(dataVec):
 
     calEntry = getEntry(m_centroid,m_axis[1])
     calExit  = getExit(m_centroid,m_axis[1])
-
     CalDist[0] = np.linalg.norm(calEntry - calExit)/nucInterLen
  
     CalXDir_mom[0] = m_axis[1,0] 
@@ -651,9 +584,13 @@ def fillMomentsData(dataVec):
     CalYEcntr_mom[0] = m_centroid[1]
     CalZEcntr_mom[0] = m_centroid[2]
 
-    CentCovXX[0] = momCentroidErr[0,0]
-    CentCovYY[0] = momCentroidErr[1,1]
-    CentCovZZ[0] = momCentroidErr[2,2]
+    covCalcStatus = calcCovariance(dataVec,m_centroid)
+    momCentroidErr = centroidCovMatrix 
+    momAxisErr =  cov
+
+    CentCovXX[0] = momCentroidErr[0]
+    CentCovYY[0] = momCentroidErr[1]
+    CentCovZZ[0] = momCentroidErr[2]
 
     DirCovXX[0] = momAxisErr[0,0]
     DirCovYY[0] = momAxisErr[1,1]
@@ -679,22 +616,17 @@ def buildIdVec():
 
   return XtalId
 
-def buildPosEneVec(tree):
-
-  XtalPosEne = []
-  for nXtal in range(Tow*Log*Lay):
-    for iPos in range(Pos):  
-      XtalPosEne = np.append(XtalPosEne,tree.CalXtalPos[nXtal*Pos + iPos])
-    XtalPosEne = np.append(XtalPosEne,tree.CalXtalEnePos[nXtal])
-
-  XtalPosEne = XtalPosEne.reshape(Tow*Log*Lay,(Pos+1))
-  return XtalPosEne
-
 def buildDataVec(tree,XtalId):
 
-  XtalPosEne = buildPosEneVec(tree)
+  XtalPos = np.array(np.reshape(CalXtalPos,newshape=(Tow*Lay*Log,Pos)))
+  XtalEne = np.array(CalXtalEnePos)
   
-  dataVec = np.concatenate((XtalId,XtalPosEne),axis=1)
+  dataVec = np.concatenate((XtalId,XtalPos),axis=1)
+  dataVec = np.insert(dataVec,6,XtalEne,axis=1)
+
+# Trim the data vector using the Crystal energy cut
+  dataVec = dataVec[~(dataVec[:,6]<XtalCut)]
+
   dataVec = np.insert(dataVec,7,0,axis=1)
   for n in range(len(dataVec)):
     dataVec[n,7] = math.fabs(point2Pos(dataVec[n]))
@@ -906,19 +838,27 @@ towerPitch = 374.5
 transScaleFactor = 1
 transScaleFactorBoost = 2
 coreRadius = 0.75
+RadtoDeg = 180/3.14159
 
 inputName = sys.argv[1]
+
 oldfile = ROOT.TFile(inputName)
 oldtree = oldfile.Get("tuple")
 
+CalXtalEnePos = defineArray('f',Tow*Log*Lay)
+CalXtalPos = defineArray('f',Tow*Log*Lay*Pos)
+
+oldtree.SetBranchAddress('CalXtalEnePos',CalXtalEnePos)
+oldtree.SetBranchAddress('CalXtalPos',CalXtalPos)
+
 XtalCut = 400
+XtalMin = 3
 
 nent = oldtree.GetEntries()
 #nent = 1000
 
 XtalId = buildIdVec()
 buildNewTree()
-
 
 for nEvent in range(nent):
   oldtree.GetEntry(nEvent)
@@ -927,9 +867,6 @@ for nEvent in range(nent):
 
   #Build the data Vector with all of the needed information
   dataVec = buildDataVec(oldtree,XtalId)
-
-  #Trim the data vector using the Crystal energy cut
-  dataVec = dataVec[~(dataVec[:,6]<XtalCut)]
 
   #Preform the moment analysis
   fillMomentsData(dataVec)
@@ -955,20 +892,22 @@ for nEvent in range(nent):
   mcEntry = getEntry(McPoint,McDir)
   mcExit  = getExit(McPoint,McDir)
   McDist[0] = np.linalg.norm(mcEntry - mcExit)/nucInterLen
-
-  DirPsf[0] = 180/3.14159*ROOT.sqrt((math.acos(abs(CalZDir_mom[0])) - math.acos(abs(McZDir[0])))**2 + (math.atan(abs(CalYDir_mom[0])/abs(CalXDir_mom[0])) - math.atan(abs(McYDir[0])/abs(McXDir[0])))**2)
+  
+  DirPsf[0] = RadtoDeg*ROOT.sqrt((ROOT.acos(abs(CalZDir_mom[0])) - ROOT.acos(abs(McZDir[0])))**2 + (ROOT.atan(abs(CalYDir_mom[0])/abs(CalXDir_mom[0])) - ROOT.atan(abs(McYDir[0])/abs(McXDir[0])))**2)
 
   VarPhi[0] = (CalYDir_mom[0]*CalYDir_mom[0]*DirCovXX[0] + CalXDir_mom[0]*CalXDir_mom[0]*DirCovYY[0] -  2*CalXDir_mom[0]*CalYDir_mom[0]*DirCovXY[0])/(CalXDir_mom[0]*CalXDir_mom[0] + CalYDir_mom[0]*CalYDir_mom[0])**2 
- 
-  VarTheta[0] = DirCovZZ[0]/(1-CalZDir_mom[0]*CalZDir_mom[0])
- 
-  CovPsf[0] = ROOT.sqrt(VarPhi[0] + VarTheta[0])*180/3.14159
 
-  OldPsf[0] = 180/3.14159*ROOT.sqrt((math.acos(abs(CalZDir[0])) - math.acos(abs(McZDir[0])))**2 + (math.atan(abs(CalYDir[0])/abs(CalXDir[0])) - math.atan(abs(McYDir[0])/abs(McXDir[0])))**2)
+  VarTheta[0] = DirCovZZ[0]/(1-CalZDir_mom[0]*CalZDir_mom[0])
+
+  CovPsf[0] = ROOT.sqrt(VarPhi[0] + VarTheta[0])*RadtoDeg
+
+  OldPsf[0] = RadtoDeg*ROOT.sqrt((ROOT.acos(abs(CalZDir[0])) - ROOT.acos(abs(McZDir[0])))**2 + (ROOT.atan(abs(CalYDir[0])/abs(CalXDir[0])) - ROOT.atan(abs(McYDir[0])/abs(McXDir[0])))**2)
+
+#  print DirPsf[0], CovPsf[0]
 
   newtree.Fill()
   
-#  if nEvent % 1000 == 0:
-  print "Event ", nEvent
+  if nEvent % 10000 == 0:
+    print "Event ", nEvent
 
 newtree.Write()
